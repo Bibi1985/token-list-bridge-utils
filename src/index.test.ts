@@ -1,20 +1,21 @@
-import { TokenInfo } from '@uniswap/token-lists'
+import { TokenInfo, TokenList } from '@uniswap/token-lists'
+import { Token } from '@uniswap/sdk-core'
 import { chainify, chainifyTokenList, mergeTokenLists } from '.'
 import { ChainId } from './constants/chainId'
 import {
   COINBASE_WRAPPED_STAKED_ETH,
   COINBASE_WRAPPED_STAKED_ETH_ARBITRUM_ONE,
   COINBASE_WRAPPED_STAKED_ETH_BASE,
-  COINBASE_WRAPPED_STAKED_ETH_BASE_GOERLI,
   COINBASE_WRAPPED_STAKED_ETH_OPTIMISM,
+  COINBASE_WRAPPED_STAKED_ETH_UNICHAIN,
   DAI,
   DAI_ARBITRUM_ONE,
   DAI_AVALANCHE,
   DAI_BASE,
-  DAI_BASE_GOERLI,
   DAI_BNB,
   DAI_OPTIMISM,
   DAI_POLYGON,
+  DAI_UNICHAIN,
 } from './constants/tokens'
 import {
   arbedSampleTokenList,
@@ -27,7 +28,6 @@ import {
   bnbedSampleTokenList_2,
   avalanchedSampleTokenList,
   sampleL1TokenList_3,
-  baseGoerliSampleTokenList_3,
   baseSampleTokenList_3,
   celoedSampleTokenList,
 } from './fixtures'
@@ -156,25 +156,6 @@ it('outputs bnb list correctly with different decimals', async () => {
   ).toEqual(
     // ignores other metadata
     bnbedSampleTokenList_2.tokens.map((t) => [
-      t.address,
-      t.chainId,
-      t.extensions,
-    ])
-  )
-})
-
-it('outputs base goerli list correctly', async () => {
-  const tokenList = await chainifyTokenList(
-    [ChainId.BASE_GOERLI],
-    sampleL1TokenList_3
-  )
-  expect(tokenList).toBeDefined()
-  expect(tokenList?.version).toEqual(baseGoerliSampleTokenList_3.version)
-  expect(
-    tokenList?.tokens.map((t) => [t.address, t.chainId, t.extensions])
-  ).toEqual(
-    // ignores other metadata
-    baseGoerliSampleTokenList_3.tokens.map((t) => [
       t.address,
       t.chainId,
       t.extensions,
@@ -321,8 +302,8 @@ describe(chainify, () => {
             [ChainId.BASE]: {
               tokenAddress: DAI_BASE.address,
             },
-            [ChainId.BASE_GOERLI]: {
-              tokenAddress: DAI_BASE_GOERLI.address,
+            [ChainId.UNICHAIN]: {
+              tokenAddress: DAI_UNICHAIN.address,
             },
           },
         },
@@ -340,6 +321,17 @@ describe(chainify, () => {
       },
       {
         ...Tokens[ChainId.BNB]!.DAI,
+        extensions: {
+          bridgeInfo: {
+            [ChainId.MAINNET]: {
+              tokenAddress: DAI.address,
+            },
+          },
+        },
+      },
+      {
+        ...Tokens[ChainId.UNICHAIN]!.DAI,
+        name: 'Dai Stablecoin',
         extensions: {
           bridgeInfo: {
             [ChainId.MAINNET]: {
@@ -393,16 +385,6 @@ describe(chainify, () => {
           },
         },
       },
-      {
-        ...Tokens[ChainId.BASE_GOERLI]!.DAI,
-        extensions: {
-          bridgeInfo: {
-            [ChainId.MAINNET]: {
-              tokenAddress: DAI.address,
-            },
-          },
-        },
-      },
     ])
   })
 
@@ -420,17 +402,28 @@ describe(chainify, () => {
             [ChainId.BASE]: {
               tokenAddress: COINBASE_WRAPPED_STAKED_ETH_BASE.address,
             },
-            [ChainId.BASE_GOERLI]: {
-              tokenAddress: COINBASE_WRAPPED_STAKED_ETH_BASE_GOERLI.address,
-            },
             [ChainId.ARBITRUM_ONE]: {
               tokenAddress: COINBASE_WRAPPED_STAKED_ETH_ARBITRUM_ONE.address,
+            },
+            [ChainId.UNICHAIN]: {
+              tokenAddress: COINBASE_WRAPPED_STAKED_ETH_UNICHAIN.address,
             },
           },
         },
       },
       {
         ...Tokens[ChainId.OPTIMISM]!.COINBASE_WRAPPED_STAKED_ETH,
+        name: 'Coinbase Wrapped Staked ETH',
+        extensions: {
+          bridgeInfo: {
+            [ChainId.MAINNET]: {
+              tokenAddress: COINBASE_WRAPPED_STAKED_ETH.address,
+            },
+          },
+        },
+      },
+      {
+        ...Tokens[ChainId.UNICHAIN]!.COINBASE_WRAPPED_STAKED_ETH,
         name: 'Coinbase Wrapped Staked ETH',
         extensions: {
           bridgeInfo: {
@@ -462,17 +455,155 @@ describe(chainify, () => {
           },
         },
       },
-      {
-        ...Tokens[ChainId.BASE_GOERLI]!.COINBASE_WRAPPED_STAKED_ETH,
-        name: 'Coinbase Wrapped Staked ETH',
-        extensions: {
-          bridgeInfo: {
-            [ChainId.MAINNET]: {
-              tokenAddress: COINBASE_WRAPPED_STAKED_ETH.address,
+    ])
+  })
+})
+
+describe('excluded tokens', () => {
+  it('excludes tokens from Arbitrum when specified in EXCLUDED_TOKENS', async () => {
+    // Use a token that has the excluded L2 address as its explicit bridgeInfo
+    const testTokenList: TokenList = {
+      name: 'Test Exclusion',
+      timestamp: new Date().toISOString(),
+      version: { major: 1, minor: 0, patch: 0 },
+      tokens: [
+        {
+          chainId: ChainId.MAINNET,
+          address: '0x0000000000000000000000000000000000000001',
+          name: 'Test Token',
+          symbol: 'TEST',
+          decimals: 18,
+          extensions: {
+            bridgeInfo: {
+              [ChainId.ARBITRUM_ONE]: {
+                tokenAddress: '0xfEb4DfC8C4Cf7Ed305bb08065D08eC6ee6728429', // excluded arbitrum address
+              },
             },
           },
         },
-      },
-    ])
+      ],
+    }
+
+    const chainified = await chainifyTokenList(
+      [ChainId.ARBITRUM_ONE],
+      testTokenList
+    )
+
+    // Should only contain mainnet token, not the Arbitrum L2 token
+    expect(chainified.tokens.length).toBe(1)
+    expect(chainified.tokens[0].chainId).toBe(ChainId.MAINNET)
+    // Should not have bridgeInfo for Arbitrum since L2 token is excluded
+    expect(chainified.tokens[0].extensions?.bridgeInfo).toBeUndefined()
+  })
+
+  it('excludes tokens from Polygon when specified in EXCLUDED_TOKENS', async () => {
+    // Use DAI which has a valid Polygon mapping
+    const testTokenList: TokenList = {
+      name: 'Test Polygon Exclusion',
+      timestamp: new Date().toISOString(),
+      version: { major: 1, minor: 0, patch: 0 },
+      tokens: [
+        {
+          chainId: ChainId.MAINNET,
+          address: '0x6B175474E89094C44Da98b954EedeAC495271d0F', // DAI
+          name: 'Dai Stablecoin',
+          symbol: 'DAI',
+          decimals: 18,
+          extensions: {
+            bridgeInfo: {
+              [ChainId.POLYGON]: {
+                tokenAddress: '0x553d3D295e0f695B9228246232eDF400ed3560B5', // excluded polygon address
+              },
+            },
+          },
+        },
+      ],
+    }
+
+    const chainified = await chainifyTokenList([ChainId.POLYGON], testTokenList)
+
+    // Should only contain mainnet token, not the Polygon L2 token
+    expect(chainified.tokens.length).toBe(1)
+    expect(chainified.tokens[0].chainId).toBe(ChainId.MAINNET)
+    // Should not have bridgeInfo for Polygon since the L2 token is excluded
+    expect(chainified.tokens[0].extensions?.bridgeInfo).toBeUndefined()
+  })
+
+  it('excludes tokens from Unichain when specified in EXCLUDED_TOKENS', async () => {
+    // Create a token list with the excluded Unichain token
+    const EXCLUDED_TOKEN_MAINNET = new Token(
+      ChainId.MAINNET,
+      '0x45804880de22913dafe09f4980848ece6ecbaf78', // PAX Gold - maps to excluded unichain token
+      18,
+      'PAXG',
+      'PAX Gold'
+    )
+
+    const testTokenList: TokenList = {
+      name: 'Test Unichain Exclusion',
+      timestamp: new Date().toISOString(),
+      version: { major: 1, minor: 0, patch: 0 },
+      tokens: [
+        {
+          chainId: ChainId.MAINNET,
+          address: EXCLUDED_TOKEN_MAINNET.address,
+          name: EXCLUDED_TOKEN_MAINNET.name!,
+          symbol: EXCLUDED_TOKEN_MAINNET.symbol!,
+          decimals: EXCLUDED_TOKEN_MAINNET.decimals,
+        },
+      ],
+    }
+
+    const chainified = await chainifyTokenList(
+      [ChainId.UNICHAIN],
+      testTokenList
+    )
+
+    // Should only contain mainnet token, not the Unichain L2 token
+    expect(chainified.tokens.length).toBe(1)
+    expect(chainified.tokens[0].chainId).toBe(ChainId.MAINNET)
+    expect(chainified.tokens[0].address.toLowerCase()).toBe(
+      EXCLUDED_TOKEN_MAINNET.address.toLowerCase()
+    )
+    // Should not have bridgeInfo for Unichain
+    expect(chainified.tokens[0].extensions?.bridgeInfo).toBeUndefined()
+  })
+
+  it('does not exclude tokens on non-excluded chains', async () => {
+    // Use the same mainnet address that maps to excluded Arbitrum token
+    // but chainify for Optimism instead
+    const TOKEN_MAINNET = new Token(
+      ChainId.MAINNET,
+      '0x8290333cef9e6d528dd5618fb97a76f268f3edd4',
+      18,
+      'ANKR',
+      'Ankr Network'
+    )
+
+    const testTokenList: TokenList = {
+      name: 'Test Non-Exclusion',
+      timestamp: new Date().toISOString(),
+      version: { major: 1, minor: 0, patch: 0 },
+      tokens: [
+        {
+          chainId: ChainId.MAINNET,
+          address: TOKEN_MAINNET.address,
+          name: TOKEN_MAINNET.name!,
+          symbol: TOKEN_MAINNET.symbol!,
+          decimals: TOKEN_MAINNET.decimals,
+        },
+      ],
+    }
+
+    const chainified = await chainifyTokenList(
+      [ChainId.OPTIMISM],
+      testTokenList
+    )
+
+    // May contain L2 tokens if valid mappings exist for Optimism
+    const mainnetToken = chainified.tokens.find(
+      (t) => t.chainId === ChainId.MAINNET
+    )
+    expect(mainnetToken).toBeDefined()
   })
 })

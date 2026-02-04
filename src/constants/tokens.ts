@@ -9,14 +9,6 @@ export const COINBASE_WRAPPED_STAKED_ETH = new Token(
   'Coinbase Wrapped Staked ETH'
 )
 
-export const COINBASE_WRAPPED_STAKED_ETH_BASE_GOERLI = new Token(
-  ChainId.BASE_GOERLI,
-  '0x4fC531f8Ae7A7808E0dccCA08F1e3c7694582950',
-  18,
-  'cbETH',
-  'Coinbase Wrapped Staked ETH'
-)
-
 export const COINBASE_WRAPPED_STAKED_ETH_BASE = new Token(
   ChainId.BASE,
   '0x2Ae3F1Ec7F1F5012CFEab0185bfc7aa3cf0DEc22',
@@ -36,6 +28,14 @@ export const COINBASE_WRAPPED_STAKED_ETH_ARBITRUM_ONE = new Token(
 export const COINBASE_WRAPPED_STAKED_ETH_OPTIMISM = new Token(
   ChainId.OPTIMISM,
   '0xadDb6A0412DE1BA0F936DCaeb8Aaa24578dcF3B2',
+  18,
+  'cbETH',
+  'Coinbase Wrapped Staked ETH'
+)
+
+export const COINBASE_WRAPPED_STAKED_ETH_UNICHAIN = new Token(
+  ChainId.UNICHAIN,
+  '0xEb64b50FeF2A363940369285F86Ae9a68211db59',
   18,
   'cbETH',
   'Coinbase Wrapped Staked ETH'
@@ -94,9 +94,9 @@ export const DAI_BASE = new Token(
   'Dai Stablecoin'
 )
 
-export const DAI_BASE_GOERLI = new Token(
-  ChainId.BASE_GOERLI,
-  '0x174956bDfbCEb6e53089297cce4fE2825E58d92C',
+export const DAI_UNICHAIN = new Token(
+  ChainId.UNICHAIN,
+  '0x20CAb320A855b39F724131C69424240519573f81',
   18,
   'DAI',
   'Dai Stablecoin'
